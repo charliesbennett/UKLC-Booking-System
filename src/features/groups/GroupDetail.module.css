@@ -1,0 +1,196 @@
+.loading {
+  padding: 2rem;
+  color: #888;
+}
+
+.page {
+  max-width: 900px;
+}
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.back {
+  background: none;
+  border: none;
+  color: #003366;
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0;
+  font-weight: 500;
+}
+
+.back:hover {
+  text-decoration: underline;
+}
+
+.title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0;
+  flex: 1;
+}
+
+.statusBadge {
+  display: inline-block;
+  padding: 0.25rem 0.65rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.provisional { background: #fff3cd; color: #856404; }
+.confirmed   { background: #d1fae5; color: #065f46; }
+.cancelled   { background: #fee2e2; color: #991b1b; }
+
+.error {
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 0.65rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.section {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  padding: 1.5rem;
+}
+
+.sectionTitle {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #003366;
+  margin: 0 0 1.25rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.field label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #555;
+}
+
+.field input,
+.field select,
+.field textarea {
+  padding: 0.45rem 0.65rem;
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  font-size: 0.875rem;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s;
+  font-family: inherit;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: #003366;
+}
+
+.field textarea {
+  resize: vertical;
+}
+
+.checkField label {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.checkField input[type="checkbox"] {
+  width: auto;
+  padding: 0;
+  border: none;
+  cursor: pointer;
+}
+
+.hint {
+  font-weight: 400;
+  color: #999;
+  font-size: 0.75rem;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-bottom: 2rem;
+}
+
+.cancel {
+  padding: 0.55rem 1.25rem;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #444;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.cancel:hover {
+  background: #f4f6f9;
+}
+
+.save {
+  padding: 0.55rem 1.5rem;
+  background: #003366;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.save:hover:not(:disabled) {
+  background: #004488;
+}
+
+.save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
