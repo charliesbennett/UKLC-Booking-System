@@ -1,15 +1,11 @@
 """
-Run this script once to create the OpenAI Assistant and Vector Store.
-It will print the ASSISTANT_ID to add to your .env file.
-
 Usage:
-    python assistant.py
-
-Optional: place knowledge files (PDF, DOCX, TXT, etc.) in a ./knowledge/ directory
-before running — they will be uploaded to the Vector Store automatically.
+    python3 assistant.py            # Create a new assistant (run once)
+    python3 assistant.py --upload   # Upload new files to existing assistant's Vector Store
 """
 
 import os
+import sys
 import glob
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -37,22 +33,22 @@ If you do not know the exact centre-specific information (such as exact times or
 Always maintain a calm, professional and supportive tone."""
 
 
-def upload_knowledge_files(vector_store_id: str) -> None:
+def get_file_paths() -> list[str]:
     knowledge_dir = "./knowledge"
     if not os.path.isdir(knowledge_dir):
-        print("No ./knowledge directory found — skipping file upload.")
-        return
+        print("No ./knowledge directory found.")
+        return []
+    paths = [p for p in glob.glob(f"{knowledge_dir}/**/*", recursive=True) if os.path.isfile(p)]
+    return paths
 
-    file_paths = glob.glob(f"{knowledge_dir}/**/*", recursive=True)
-    file_paths = [p for p in file_paths if os.path.isfile(p)]
 
+def upload_files_to_vector_store(vector_store_id: str) -> None:
+    file_paths = get_file_paths()
     if not file_paths:
-        print("No files found in ./knowledge — skipping file upload.")
+        print("No files to upload.")
         return
-
-    print(f"Uploading {len(file_paths)} file(s) to Vector Store...")
-    file_streams = [open(path, "rb") for path in file_paths]
-
+    print(f"Uploading {len(file_paths)} file(s)...")
+    file_streams = [open(p, "rb") for p in file_paths]
     try:
         client.beta.vector_stores.file_batches.upload_and_poll(
             vector_store_id=vector_store_id,
@@ -64,12 +60,39 @@ def upload_knowledge_files(vector_store_id: str) -> None:
             f.close()
 
 
-def main() -> None:
+def upload_to_existing_assistant() -> None:
+    assistant_id = os.environ.get("ASSISTANT_ID")
+    if not assistant_id:
+        print("Error: ASSISTANT_ID not set in .env")
+        sys.exit(1)
+
+    print(f"Loading assistant {assistant_id}...")
+    assistant = client.beta.assistants.retrieve(assistant_id)
+
+    try:
+        vector_store_ids = assistant.tool_resources.file_search.vector_store_ids
+        if not vector_store_ids:
+            raise ValueError("No vector store found")
+        vector_store_id = vector_store_ids[0]
+    except (AttributeError, ValueError):
+        print("No Vector Store found on assistant — creating one...")
+        vector_store = client.beta.vector_stores.create(name="UKLC Knowledge Base")
+        client.beta.assistants.update(
+            assistant_id,
+            tool_resources={"file_search": {"vector_store_ids": [vector_store.id]}},
+        )
+        vector_store_id = vector_store.id
+
+    print(f"Using Vector Store: {vector_store_id}")
+    upload_files_to_vector_store(vector_store_id)
+
+
+def create_assistant() -> None:
     print("Creating Vector Store...")
     vector_store = client.beta.vector_stores.create(name="UKLC Knowledge Base")
     print(f"Vector Store created: {vector_store.id}")
 
-    upload_knowledge_files(vector_store.id)
+    upload_files_to_vector_store(vector_store.id)
 
     print("Creating Assistant...")
     assistant = client.beta.assistants.create(
@@ -90,4 +113,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    if "--upload" in sys.argv:
+        upload_to_existing_assistant()
+    else:
+        create_assistant()

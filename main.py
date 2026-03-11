@@ -1,5 +1,6 @@
 import os
 import httpx
+import redis.asyncio as aioredis
 from fastapi import FastAPI, Request, Query, HTTPException
 from fastapi.responses import PlainTextResponse
 from openai import AsyncOpenAI
@@ -14,11 +15,22 @@ WHATSAPP_TOKEN = os.environ["WHATSAPP_TOKEN"]
 WHATSAPP_PHONE_NUMBER_ID = os.environ["WHATSAPP_PHONE_NUMBER_ID"]
 VERIFY_TOKEN = os.environ["VERIFY_TOKEN"]
 ASSISTANT_ID = os.environ["ASSISTANT_ID"]
+REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379")
 
 WHATSAPP_API_URL = f"https://graph.facebook.com/v19.0/{WHATSAPP_PHONE_NUMBER_ID}/messages"
 
-# In-memory store: sender phone number -> OpenAI thread ID
-user_threads: dict[str, str] = {}
+redis_client: aioredis.Redis = None
+
+
+@app.on_event("startup")
+async def startup():
+    global redis_client
+    redis_client = aioredis.from_url(REDIS_URL, decode_responses=True)
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    await redis_client.aclose()
 
 
 @app.get("/webhook")
@@ -41,7 +53,6 @@ async def receive_message(request: Request):
         changes = entry["changes"][0]
         value = changes["value"]
 
-        # Ignore status updates
         if "messages" not in value:
             return {"status": "ok"}
 
@@ -61,22 +72,25 @@ async def receive_message(request: Request):
     return {"status": "ok"}
 
 
-async def process_message(sender: str, text: str) -> str:
-    # Get or create thread for this sender
-    if sender not in user_threads:
+async def get_or_create_thread(sender: str) -> str:
+    key = f"thread:{sender}"
+    thread_id = await redis_client.get(key)
+    if not thread_id:
         thread = await client.beta.threads.create()
-        user_threads[sender] = thread.id
+        await redis_client.set(key, thread.id)
+        thread_id = thread.id
+    return thread_id
 
-    thread_id = user_threads[sender]
 
-    # Add message to thread
+async def process_message(sender: str, text: str) -> str:
+    thread_id = await get_or_create_thread(sender)
+
     await client.beta.threads.messages.create(
         thread_id=thread_id,
         role="user",
         content=text,
     )
 
-    # Run the assistant and wait for completion
     run = await client.beta.threads.runs.create_and_poll(
         thread_id=thread_id,
         assistant_id=ASSISTANT_ID,
@@ -85,7 +99,6 @@ async def process_message(sender: str, text: str) -> str:
     if run.status != "completed":
         return "Sorry, I was unable to process your request. Please try again."
 
-    # Retrieve the latest assistant message
     messages = await client.beta.threads.messages.list(
         thread_id=thread_id, order="desc", limit=1
     )
